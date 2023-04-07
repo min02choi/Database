@@ -1,0 +1,3 @@
+pymysql이 깔려 있는 인터프리터는 base 인터프리터임 (python 3.9)
+
+python 인터프리터 변경: 맥북 단축키 (fn + F1)
