@@ -1,11 +1,8 @@
 import pymysql
-import pandas as pd
+import sys
 
 
-# 메인 페이지: 고객 / 관리자
-# 일단 보류(union?)
-
-################################################
+### 고객/관리자 #############################################
 
 # 고객, 관리자 선택
 # 1: 고객, 2: 관리자
@@ -14,12 +11,13 @@ def user_admin_select():
     print("1. 고객")
     print("2. 관리자")
     num = 0
-    try:
-        num = int(input(" 번호 선택 >> "))
-    except:
-        while(num != 1 and num != 2):
-            print("올바른 번호를 선택해주세요.")
+    while(num != 1 and num != 2):
+        try:
             num = int(input(" 번호 선택 >> "))
+        except:
+            pass
+        if (num != 1 and num != 2):
+            print("올바른 번호를 선택해주세요.")
     return num
 
 ### 고객용 ###############################################
@@ -30,13 +28,15 @@ def user_mainpage():
     print("아래 항목을 선택해주세요.\n")
     print("1. 로그인")
     print("2. 신규회원")
-    num = input(" >> ")
-
-    while(num != "1" and num != "2"):
-        print("번호를 다시 입력해주세요.")
-        num = input(" >> ")
-    
-    return int(num)
+    num = 0
+    while(num != 1 and num != 2):
+        try:
+            num = int(input(" 번호 선택 >> "))
+        except:
+            pass
+        if (num != 1 and num != 2):
+            print("올바른 번호를 선택해주세요.")
+    return num
 
 # 전화번호 입력
 # 값을 미리 저장해놓는게 아닌 사용자가 입력한 아이디를 DB의 cno와 하나씩 비교
@@ -46,17 +46,16 @@ def enter_cno():
     cur.execute("SELECT cno FROM customer")
     rows = cur.fetchall()
 
+    print("\n[ 기존회원 로그인 ]")
     # 최대 5회동안 아이디를 입력받음
-    err_cnt = 1
-    while (err_cnt < 6):
+    err_cnt = 0
+    while (err_cnt < 5):
         input_cno = input(" 전화번호 입력 >> ")
         for row in rows:
             if (input_cno == row['cno']):
-                return input_cno
-        
-        print("\n전화번호가 올바르지 않습니다. 다시 입력해주세요.\n5회 오류 시 신규회원 가입 화면으로 넘어갑니다.", err_cnt, "회 오류")
+                return input_cno 
         err_cnt += 1
-
+        print("\n전화번호가 올바르지 않습니다. 다시 입력해주세요.\n5회 오류 시 신규회원 가입 화면으로 넘어갑니다.", err_cnt, "회 오류")
     return 0
 
 # 입력받은 아이디에 해당하는 비밀번호 입력
@@ -79,9 +78,8 @@ def enter_pw(user_cno):
         input_pw = input(" 비밀번호 입력 >> ")
         if (input_pw == real_pw):
             return real_name
-        # 메인 화면으로 어떻게 넘어갈건데?
         else:
-            print("\n비밀번호를 잘못 입력하셨습니다.\n3회 오류 시 메인 화면으로 넘어갑니다.", err_cnt, "회 오류")
+            print("\n비밀번호를 잘못 입력하셨습니다.\n3회 오류 시 프로그램이 종료됩니다. [" + str(err_cnt) + "회 오류]")
             err_cnt += 1
 
 # 신규회원 가입
@@ -95,10 +93,9 @@ def newuser_register():
     newuser_pw = ""
     newuser_name = ""
 
-    print("신규회원 가입 페이지입니다.\n전화번호를 입력해주세요.")
-    # 아이디를 입력받기
+    print("\n신규회원 가입 페이지입니다.\n전화번호를 입력해주세요.")
+    # 아이디 입력받기
     while (True):
-
         # 전화번호의 형식 확인
         while (True):
             try:
@@ -115,8 +112,8 @@ def newuser_register():
                 print("이미 존재하는 전화번호입니다.")
                 flag = 1
                 break
-        
-        # 중복 아닌 전화번호 입력 성공
+#        
+        # 중복 아닌 전화번호 입력 성공시
         if (flag == 0):
             print("비밀번호를 입력하세요.")
             newuser_pw = input(" 비밀번호 입력 >> ")
@@ -140,7 +137,6 @@ def newuser_register():
     return newuser_cno
 
 # 가게의 메뉴를 보여주는 함수
-# 반환
 def show_menus():
     cur = con.cursor()
     cur.execute("SELECT pid, name, cate, price FROM product")
@@ -153,8 +149,6 @@ def show_menus():
     print("========================================================")
 
 # 고객이 물건을 선택하는 메소드
-# cart를 부름?
-# 주문 한 건을 완성시켜야 함
 # 현재 진행중인 주문 아이디 반환
 def select_menu(user_cno):
 
@@ -163,18 +157,27 @@ def select_menu(user_cno):
     sql = "INSERT INTO orders(cus_no) VALUES (%s)"
     cur.execute(sql, (str(user_cno)))
     rows = cur.fetchall()
-    
+
+    ####################################################
+
+    # order 테이블의 튜플을 생성 
+    # cur = con.cursor()
+    # sql = "INSERT INTO orders(cus_no, ord_date) VALUES (%s, '2023-06-01')"
+    # cur.execute(sql, (str(user_cno)))
+    # rows = cur.fetchall()
+
+    ####################################################
+
     # 가장 큰 oid가 현재 주문중인 oid임. 즉, order 테이블 중 가장 큰 oid를  선택
     sql = "SELECT max(oid) FROM orders"
     cur.execute(sql)
     rows = cur.fetchall()
     current_oid = rows[0]['max(oid)']          
 
-    total_menu_price = 0    # order에서 당기기?
+    total_menu_price = 0
     continue_buy = 0        # 계속 구매
     
     while (continue_buy == 0):
-
         cur = con.cursor()
         cur.execute("SELECT pid FROM product")
         rows = cur.fetchall()
@@ -192,7 +195,7 @@ def select_menu(user_cno):
             if (flag == 0):
                 print("메뉴가 올바르지 않습니다. 다시 선택해주세요")
                 input_pid = int(input(" 메뉴 선택 >> "))
-        
+    #    
         # 메뉴의 수량 입력(재고 이하의 수량을 입력할 때까지 반복)
         while (True):
             print("메뉴의 수량을 입력해주세요")
@@ -205,7 +208,6 @@ def select_menu(user_cno):
             menu_name = rows[0]['name']
             menu_price = rows[0]['price']
 
-            ############################
             # 재고가 부족할 경우 구매 불가
             sql = "SELECT qty FROM product WHERE pid = " + str(input_pid)
             cur.execute(sql)
@@ -214,8 +216,7 @@ def select_menu(user_cno):
                 print("물건의 수량이 부족합니다. 최대 주문 갯수는 " + str(rows[0]['qty']) + "개 입니다.")
             else:
                 break
-            ############################
-
+#
         # 장바구니에 추가
         sql = "INSERT INTO cart(ord_no, pro_id, qty) VALUES (%s, %s, %s)"
         cur.execute(sql, (current_oid, input_pid, input_menu_qty))
@@ -234,19 +235,47 @@ def select_menu(user_cno):
         print("장바구니의 총 금액은 ", total_menu_price, "입니다.")
         print("계속 구매하시겠습니까?")
         print("1. 계속 구매하기")
-        print("2. 결제하기")
-
+        print("2. 장바구니 확인")
+        print("3. 결제하기")
+#
         cont = 0
         try:
             cont = int(input(" 번호 선택 >> "))
         except:
-            while(cont != 1 and cont != 2):
+            while(cont != 1 and cont != 2 and cont != 3):
                 print("올바른 번호를 입력해주세요")
                 cont = int(input(" 번호 선택 >> "))
 
-        # stamp 수, 방문 횟수 증가
-        # stamp 10000원당 1개 적립
+        # 장바구니 중간 확인
         if (cont == 2):
+            sql = "SELECT customer.name cname, product.pid, product.name pname, product.price, cart.qty, product.des FROM customer, product, orders, cart WHERE customer.cno = orders.cus_no AND orders.oid = cart.ord_no AND cart.pro_id = product.pid AND orders.oid= '" + str(current_oid) + "'"
+            cur.execute(sql)
+            rows = cur.fetchall()
+
+            print("=============== <", rows[0]['cname'] + "님의 장바구니 내역 > ===============")
+            print(" 상품번호   상품이름   상품금액  담은 수량   상품설명 ")
+            for row in rows:
+                if (row['des'] == None or row['des'] == ""):
+                    row['des'] = "상품 설명이 없습니다."
+
+                print(" {:>8}  {:<10} {:<8} {:<6} {:<20}".format(row['pid'], row['pname'], row['price'], row['qty'], row['des']))
+            print("===============================================================")
+#
+            print("계속 구매하시겠습니까?")
+            print("1. 계속 구매하기")
+            print("2. 결제하기")
+
+            try:
+                cont = int(input(" 번호 선택 >> "))
+            except:
+                while(cont != 1 and cont != 2):
+                    print("올바른 번호를 입력해주세요")
+                    cont = int(input(" 번호 선택 >> "))
+
+            if (cont == 2):
+                return current_oid
+
+        elif (cont == 3):
             print("결제하기 화면으로 넘어갑니다.")
             continue_buy = 1
             return current_oid
@@ -262,21 +291,21 @@ def buy_product(user_cno, cur_oid):
     rows = cur.fetchall()
     user_name = rows[0]['name']
 
-
     # 장바구니 내역 보여주기
     sql = "SELECT cart.pro_id, product.name, cart.qty, cart.qty * product.price FROM cart, product WHERE cart.ord_no = " + str(cur_oid) + " AND cart.pro_id = product.pid"
     cur.execute(sql)
     rows = cur.fetchall()
 
-    print("======= < 장바구니 내역 > =======")
+    print("======= < 결제 예정 상품 > =======")
     print(" 상품 이름   상품 수량   총 금액 ")
     for row in rows:
         print(" {:<14} {:<6} {:<8}".format(row['name'], row['qty'], row['cart.qty * product.price']))
-    print("=================================")
+    print("==================================")
 
     sql = "SELECT price FROM orders WHERE oid = " + str(cur_oid)
     cur.execute(sql)
     rows = cur.fetchall()
+
     total_menu_price = rows[0]['price']
     print("총 결제 금액: [ " + str(total_menu_price) + "원 ]\n")
 
@@ -284,18 +313,18 @@ def buy_product(user_cno, cur_oid):
     print("1. 결제하기")
     print("2. 취소하기")
     num = int(input(" 번호 선택 >> "))
+
     while (num != 1 and num != 2):
         print("올바른 번호를 선택해주세요.")
         num = int(input(" 번호 선택 >> "))
     
-    # 1을 눌렀을 때 진행(결제 진행)
+    # 1 --> 결제 진행
     if (num == 1):
-        ####################################        
+    
         # product 테이블의 qty 갱신
         cur = con.cursor()
         sql = "UPDATE product, cart SET product.qty = product.qty - cart.qty WHERE product.pid = cart.pro_id AND cart.ord_no = " + str(cur_oid)
         cur.execute(sql)
-        ####################################
 
         # stamp 수 갱신
         add_stamp = total_menu_price // 10000
@@ -306,17 +335,16 @@ def buy_product(user_cno, cur_oid):
         rows = cur.fetchall()
 
         cur = con.cursor()
-        print("결제가 완료되었습니다.")
+        print("\n결제가 완료되었습니다.")
         sql = "SELECT name, stamp FROM customer WHERE cno =" + str(user_cno)
         cur.execute(sql)
         rows = cur.fetchall()
         user_name = rows[0]['name']
         user_stamp = rows[0]['stamp']
 
-        # add_stamp = total_menu_price // 10000
         print("스탬프 " + str(add_stamp) + "개가 적립되었습니다.")
         print(user_name + "님의 스탬프 보유 수량은 " + str(user_stamp) + "개 입니다.")
-
+#
         if (user_stamp >= 10):
             print("스탬프 10개를 사용하여 증정품을 받으시겠습니까?")
             print("1. 예")
@@ -327,16 +355,13 @@ def buy_product(user_cno, cur_oid):
                 cur.execute(sql)
                 print("증정품 지급이 완료되었습니다. 남은 스탬프 수는 " + str(user_stamp - 10) + "개 입니다.")
         
-        print("저희 가게를 이용해주셔서 감사합니다.\n안녕히 가십시오.")
-
+        print("\n저희 가게를 이용해주셔서 감사합니다.\n안녕히 가십시오.")
 
     # 주문을 취소했으므로 oid 삭제하기 -> cart의 값도 삭제가 됨
     else:
         sql = "DELETE FROM orders WHERE oid =" + str(cur_oid)
         cur.execute(sql)
         print("메뉴 주문을 취소하였습니다.")
-
-#############################################
 
 #########################################################
 
@@ -362,7 +387,7 @@ def login_admin():
                 flag = 1
                 break       # 존재하는 아이디
         if (flag == 0):
-            print("\n아이디가 올바르지 않습니다. 다시 입력해주세요.\n3회 오류 시 메인 화면으로 넘어갑니다.", err_cnt, "회 오류")
+            print("\n아이디가 올바르지 않습니다. 다시 입력해주세요.\n3회 오류 시 프로그램이 종료됩니다. [" + str(err_cnt) + "회 오류]")
             err_cnt += 1
 
     if (err_cnt == 4):
@@ -384,7 +409,7 @@ def login_admin():
             print("관리자 " + admin_name + "님, 반갑습니다!")
             return admin_name
                        
-        print("\n비밀번호가 올바르지 않습니다. 다시 입력해주세요.\n3회 오류 시 메인 화면으로 넘어갑니다.", err_cnt, "회 오류")
+        print("\n비밀번호가 올바르지 않습니다. 다시 입력해주세요.\n3회 오류 시 프로그램이 종료됩니다. [" + str(err_cnt) + "회 오류]")
         err_cnt += 1
 
         if (err_cnt == 4):
@@ -395,13 +420,13 @@ def login_admin():
 
 # 관리자 화면의 메뉴
 def admin_menu():
-    print("원하는 항목을 선택해주세요")
-    print("1. 상품 재고 확인\n2. 매출 확인\n3. 영업 마감\n4. 프로그램 종료")
+    print("\n원하는 항목을 선택해주세요")
+    print("1. 상품 재고 확인\n2. 매출 확인\n3. 프로그램 종료")
     num = 0
     try:
         num = int(input(" 항목 선택 >> "))
     except:
-        while(num != 1 and num != 2 and num != 3 and num != 4):
+        while(num != 1 and num != 2 and num != 3):
             print("번호를 잘못 입력하였습니다. 다시 입력해주세요.")
             num = int(input(" 항목 선택 >> "))
     return num
@@ -416,7 +441,7 @@ def admin_show_product():
     print(" 상품번호 |      상품이름      |  카테고리  |   가격  |    재고 ")
     for row in rows:
         print("{:>8}  | {:<16} {:^8} {:>10} {:>6}".format(row['pid'], row['name'], row['cate'], row['price'], row['qty']))
-    print("=================================================================")
+    print("==================================================================")
 
 # 그날 상품 별 판매개수와 매출확인
 def admin_show_sales():
@@ -428,7 +453,7 @@ def admin_show_sales():
     rows = cur.fetchall()
     cur_date = rows[0]['ord_date']
 
-    # 매출을 나타내는
+    # 매출을 나타내는 쿼리
     sql = "SELECT product.pid, product.name, SUM(cart.qty), SUM(product.price * cart.qty) FROM product, orders, cart WHERE orders.ord_date = '" + str(cur_date) + "' AND orders.oid = cart.ord_no AND cart.pro_id = product.pid GROUP BY product.pid, product.name ORDER BY product.pid"
 
     cur.execute(sql)
@@ -444,55 +469,60 @@ def admin_show_sales():
     # 그날의 총 매출
     sql = "SELECT sum(price) AS P FROM orders WHERE ord_date = '" + str(cur_date) + "'"
     cur.execute(sql)
-    # row = cur.fetchone()
-    # tot_price = row[0]
     rows = cur.fetchall()
+
     total_price = rows[0]['P']
-
     print(" [총 매출: " + str(total_price) + "원 ]")
-
-    # 나가기 버튼?
 
 
 #########################################################
 
-# DB와의 연결
-con = pymysql.connect (
-    host='localhost', user='root', password='Min02choi!',
-    db='meal_kit_market', charset='utf8', autocommit=True,
-    cursorclass=pymysql.cursors.DictCursor
-)
+
+# DB와의 연결 확인
+try:
+    con = pymysql.connect (
+        host='localhost',
+        user='root',
+        password='Min02choi!',
+        db='meal_kit_market',
+        charset='utf8',
+        autocommit=True,
+        cursorclass=pymysql.cursors.DictCursor
+    )
+except:
+    print("ERROR: MySQL 연결 실패")
+    exit()
 
 cur = con.cursor()
 
-### 주문 이전까지의 화면 #################
+### 주문 이전 #################
 
 user_cno = None
 user_name = None
 
-# 첫 화면
-# while (True):
+# 관리자, 고객 선택 화면
+print("\n==========================================")
+print(" 어서오세요, 카나리오 밀키트 판매점입니다")
+print("==========================================\n")
 user_admin = user_admin_select()
 
 if (user_admin == 1):
-    print("안녕하세요, 저희 가게를 방문해주셔서 감사합니다.")
+    print("\n안녕하세요, 저희 가게를 방문해주셔서 감사합니다.")
     firstpage = user_mainpage()
 
     # 로그인 선택(1)
     if (firstpage == 1):
-        print("전화번호를 입력해주세요.")
-
         # 아이디 입력요구 -> 유효 아이디 성공: 아이디, 로그인 실패: 0
         user_cno = enter_cno()
         if (user_cno != 0):             # 유효 어이디 성공 -> 비밀번호 입력
 
             # 비밀번호 입력요구 -> 성공: 닉네임, 실패: 0
             user_name = enter_pw(user_cno)
-            if (user_name != 0):                # 로그인 성공
+            if (user_name != None):                # 로그인 성공
                 print("\n", user_name, "님, 반갑습니다!")
             else:                               # 로그인 실패
-                print("로그인 실패!!!")
-                # 로그인 실패 시 어떻게..?
+                print("로그인에 실패하였습니다.")
+                sys.exit()
 
         else:                           # 유효 어이디 실패 -> 신규회원 가입 페이지로 이동
             print("신규회원 가입 페이지로 이동합니다.")
@@ -505,15 +535,9 @@ if (user_admin == 1):
 
     ### 본격적인 주문하기 ######################################
 
-    # 로그인을 실패했을 때 여기로 넘어오지 않게 해야 함: 파이썬 파일 강제 종료?
-    # print("\n메뉴를 선택해 주세요.")
-    # show_menus()
     cur_oid = select_menu(user_cno)
 
-    # print("주문이 완료되었습니다.")
-
     # 결제하기 화면
-    print("결제하기")
     buy_product(user_cno, cur_oid)
 
 elif (user_admin == 2):
@@ -522,21 +546,16 @@ elif (user_admin == 2):
     if (result != 0):   # 로그인 성공
         while (True):
             menu_select = admin_menu()
-
             # 상품 재고 확인
             if (menu_select == 1):
                 admin_show_product()
             # 당일 매출 확인
             elif (menu_select == 2):
                 admin_show_sales()
-            # 영업 마감
+            # 프로그램 종료
             elif (menu_select == 3):
-                print("미정")
-            elif (menu_select == 4):
                 print("프로그램을 종료합니다.")
                 break
 
-
-# rows = cur.fetchall()
+# MySQL과의 연결 종료
 con.close()
-# customers = pd.DataFrame(rows)
